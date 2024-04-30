@@ -125,7 +125,6 @@ class BPlusTree:
 
 
 if __name__ == '__main__':
-    #测试树功能是否完善
     nums=[10,15,37,44,51,59,63,85]
     t = BPlusTree(3)
     for num in nums:

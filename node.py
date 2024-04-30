@@ -135,63 +135,56 @@ class Leaf:
             else:
                 self.keys.pop(index)
                 self.children.pop(index)
-        else: # 发生下溢
-            # 1. 从左兄弟节点借
-            if self.previous is not None and len(self.previous.keys) > self.a_factor:
-                if index + 1 == len(self.keys):# 删的是末尾
-                    self.keys.pop(index)
-                    self.children.pop(index)
-                    self.keys.insert(0, self.previous.keys.pop())
-                    self.children.insert(0, self.previous.children.pop())
-                    # 左兄弟和本节点的parent变化
-                    self.update2s_help(self.previous)
-                    self.update2s_help(self)
-                else:
-                    self.keys.pop(index)
-                    self.children.pop(index)
-                    self.keys.insert(0, self.previous.keys.pop())
-                    self.children.insert(0, self.previous.children.pop())
-                    self.update2s_help(self.previous)
+        elif self.previous is not None and len(self.previous.keys) > self.a_factor: # 从左兄弟节点借
+            if index + 1 == len(self.keys):# 删的是末尾
+                self.keys.pop(index)
+                self.children.pop(index)
+                self.keys.insert(0, self.previous.keys.pop())
+                self.children.insert(0, self.previous.children.pop())
+                # 左兄弟和本节点的parent变化
+                self.update2s_help(self.previous)
+                self.update2s_help(self)
             else:
-                # 2. 从右兄弟节点借
-                if self.next is not None and len(self.next.keys) > self.a_factor:
-                    self.keys.pop(index)
-                    self.children.pop(index)
-                    self.keys.append(self.next.keys.pop(0))
-                    self.children.append(self.next.children.pop(0))
-                    self.update2b_help(self)
-                else: #会引起内部节点的下溢，怎么解决
-                    # 3. 合并至左兄弟节点
-                    if self.previous is not None:
-                        self.keys.pop(index)
-                        self.children.pop(index)
-                        self.previous.keys.extend(self.keys)
-                        self.previous.children.extend(self.children)
-                        self.previous.next = self.next
-                        if self.next is not None:
-                            self.next.previous = self.previous
-                        self.parent.keys.pop(parent_index)
-                        self.parent.children.pop(parent_index)
-                        self.update2b_help(self.previous)
-                    # 4. 合并至右兄弟节点
-                    else:
-                        if self.next is not None:
-                            self.keys.pop(index)
-                            self.children.pop(index)
-                            self.next.keys = self.keys + self.next.keys
-                            self.next.children = self.children + self.next.children
-                            self.next.previous = self.previous
-                            if self.previous is not None:
-                                self.previous.next = self.next
-                            self.parent.keys.pop(parent_index)
-                            self.parent.children.pop(parent_index)
-                        else:
-                            print("Error: No sibling node to merge")  
-         # 修补父节点
-        node=self.parent
-        while node is not None:
-            node.fix_underflow()
-            node=node.parent
+                self.keys.pop(index)
+                self.children.pop(index)
+                self.keys.insert(0, self.previous.keys.pop())
+                self.children.insert(0, self.previous.children.pop())
+                self.update2s_help(self.previous)
+        elif self.next is not None and len(self.next.keys) > self.a_factor: # 从右兄弟节点借
+            self.keys.pop(index)
+            self.children.pop(index)
+            self.keys.append(self.next.keys.pop(0))
+            self.children.append(self.next.children.pop(0))
+            self.update2b_help(self)
+        elif self.previous is not None: # 合并至左兄弟节点
+            self.keys.pop(index)
+            self.children.pop(index)
+            self.previous.keys.extend(self.keys)
+            self.previous.children.extend(self.children)
+            self.previous.next = self.next
+            if self.next is not None:
+                self.next.previous = self.previous
+            self.parent.keys.pop(parent_index)
+            self.parent.children.pop(parent_index)
+            self.update2b_help(self.previous)
+        elif self.next is not None: # 合并至右兄弟节点
+            self.keys.pop(index)
+            self.children.pop(index)
+            self.next.keys = self.keys + self.next.keys
+            self.next.children = self.children + self.next.children
+            self.next.previous = self.previous
+            if self.previous is not None:
+                self.previous.next = self.next
+            self.parent.keys.pop(parent_index)
+            self.parent.children.pop(parent_index)
+        else:
+            print("Error: No sibling node to merge")  
+            
+            # 修补父节点
+            node=self.parent
+            while node is not None:
+                node.fix_underflow()
+                node=node.parent
 
 
     def items(self):
@@ -283,41 +276,36 @@ class Node:
                 self.keys.insert(0, self.previous.keys.pop())
                 self.children.insert(0, self.previous.children.pop())
                 self.update2s_help(self.previous)
-            else:
+            elif self.next is not None and len(self.next.keys) > self.a_factor:
                 # 从右兄弟节点借
-                if self.next is not None and len(self.next.keys) > self.a_factor:
-                    self.keys.append(self.next.keys.pop(0))
-                    self.children.append(self.next.children.pop(0))
-                    self.update2b_help(self)
-                else:
-                    # 合并至左兄弟节点
-                    if self.previous is not None:
-                        self.previous.keys.extend(self.keys)
-                        self.previous.children.extend(self.children)
-                        self.previous.next = self.next
-                        if self.next is not None:
-                            self.next.previous = self.previous
-                        parent_index = bisect.bisect_left(self.parent.keys, self.keys[-1])
-                        self.parent.keys.pop(parent_index)
-                        self.parent.children.pop(parent_index)
-                        self.update2b_help(self.previous)
-                    else:
-                        # 合并至右兄弟节点
-                        if self.next is not None:
-                            self.next.keys = self.keys + self.next.keys
-                            self.next.children = self.children + self.next.children
-                            self.next.previous = self.previous
-                            if self.previous is not None:
-                                self.previous.next = self.next
-                            for i in range(len(self.children)):
-                                self.children[0].parent = self.next
-                            parent_index = bisect.bisect_left(self.parent.keys, self.keys[-1])
-                            self.parent.keys.pop(parent_index)
-                            self.parent.children.pop(parent_index)
-                        # ********* 会引起内部节点的下溢，怎么解决 *********
-                        # 在tree中处理?是否满足所有情况?
-                        else:
-                            print("fix failed")
+                self.keys.append(self.next.keys.pop(0))
+                self.children.append(self.next.children.pop(0))
+                self.update2b_help(self)
+            elif self.previous is not None:
+                # 合并至左兄弟节点
+                self.previous.keys.extend(self.keys)
+                self.previous.children.extend(self.children)
+                self.previous.next = self.next
+                if self.next is not None:
+                    self.next.previous = self.previous
+                parent_index = bisect.bisect_left(self.parent.keys, self.keys[-1])
+                self.parent.keys.pop(parent_index)
+                self.parent.children.pop(parent_index)
+                self.update2b_help(self.previous)
+            elif self.next is not None:
+                # 合并至右兄弟节点
+                self.next.keys = self.keys + self.next.keys
+                self.next.children = self.children + self.next.children
+                self.next.previous = self.previous
+                if self.previous is not None:
+                    self.previous.next = self.next
+                for i in range(len(self.children)):
+                    self.children[0].parent = self.next
+                parent_index = bisect.bisect_left(self.parent.keys, self.keys[-1])
+                self.parent.keys.pop(parent_index)
+                self.parent.children.pop(parent_index)
+            else:
+                print("fix failed")
 
     def fix_underflow(self):
         flag=[0,0,0]
